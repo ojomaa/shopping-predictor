@@ -4,6 +4,8 @@ import sys
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 
+import pandas
+
 TEST_SIZE = 0.4
 
 
@@ -59,7 +61,37 @@ def load_data(filename):
     labels should be the corresponding list of labels, where each label
     is 1 if Revenue is true, and 0 otherwise.
     """
-    raise NotImplementedError
+    data = pandas.read_csv(filename)
+
+    # Change Months, VisitorType and Weekend
+    data['Month'] = data['Month'].map(
+        {
+            'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+            'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+            }
+        )
+    
+    data['VisitorType'] = data['VisitorType'].map(
+        {
+            'Returning_Visitor': 1, 'New_Visitor': 0
+            }
+        )
+    
+    data['Weekend'] = data['Weekend'].map(
+        {
+            True: 1, False: 0
+            }
+        )
+
+    # Store evidence and labels
+    evidence = data.iloc[:, :-1]
+    label = data['Revenue'].astype(int)
+
+    # Get the values and put them in a list
+    evidence_list = evidence.values.tolist()
+    label_list = label.values.tolist()
+
+    return evidence_list, label_list
 
 
 def train_model(evidence, labels):
@@ -67,7 +99,8 @@ def train_model(evidence, labels):
     Given a list of evidence lists and a list of labels, return a
     fitted k-nearest neighbor model (k=1) trained on the data.
     """
-    raise NotImplementedError
+    KNN_classifier = KNeighborsClassifier(n_neighbors=1)
+    return KNN_classifier.fit(evidence, labels)
 
 
 def evaluate(labels, predictions):
