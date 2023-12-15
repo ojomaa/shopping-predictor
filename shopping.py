@@ -3,6 +3,7 @@ import sys
 
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix
 
 import pandas
 
@@ -63,29 +64,23 @@ def load_data(filename):
     """
     data = pandas.read_csv(filename)
 
-    # Change Months, VisitorType and Weekend
-    data['Month'] = data['Month'].map(
-        {
-            'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
-            'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
-            }
-        )
+    # Fill missing values in numeric columns with the mean
+    numeric_cols = data.select_dtypes(include='number').columns
+    data[numeric_cols] = data[numeric_cols].fillna(data[numeric_cols].mean())
+
+    # Change Months, VisitorType, Weekend, and Revenue
+    month_mapping = {'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'June': 5,'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11}
+    data['Month'] = data['Month'].map(month_mapping)
     
     data['VisitorType'] = data['VisitorType'].map(
-        {
-            'Returning_Visitor': 1, 'New_Visitor': 0
-            }
-        )
-    
-    data['Weekend'] = data['Weekend'].map(
-        {
-            True: 1, False: 0
-            }
-        )
+        {'Returning_Visitor': 1, 'New_Visitor': 0, 'Other': 0})
+
+    data['Weekend'] = data['Weekend'].astype(int)
+    data['Revenue'] = data['Revenue'].astype(int)
 
     # Store evidence and labels
     evidence = data.iloc[:, :-1]
-    label = data['Revenue'].astype(int)
+    label = data['Revenue']
 
     # Get the values and put them in a list
     evidence_list = evidence.values.tolist()
@@ -100,7 +95,8 @@ def train_model(evidence, labels):
     fitted k-nearest neighbor model (k=1) trained on the data.
     """
     KNN_classifier = KNeighborsClassifier(n_neighbors=1)
-    return KNN_classifier.fit(evidence, labels)
+    fit = KNN_classifier.fit(evidence, labels)
+    return fit
 
 
 def evaluate(labels, predictions):
@@ -118,8 +114,14 @@ def evaluate(labels, predictions):
     representing the "true negative rate": the proportion of
     actual negative labels that were accurately identified.
     """
-    raise NotImplementedError
 
+    cm = confusion_matrix(labels, predictions)
+    tn, fp, fn, tp = cm.ravel()
+
+    sensitivity = tp/(tp + fn)
+    specificity = tn/(tn + fp)
+
+    return (sensitivity, specificity)
 
 if __name__ == "__main__":
     main()
